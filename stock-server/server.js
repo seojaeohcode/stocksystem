@@ -71,5 +71,39 @@ const run = function* (){
 }
 
 const reqToday = (url, name) => {
-    
+    return new Promise((resolve, reject)=>{
+        axios.get(url).then((res)=>{
+            const $ = cheerio.load(res, data)
+            const data = $('.no_today').eq(0).text().trim().split('\n')[0]
+            const numData = ~~data.split(',')[0]*1000+~~data.split(',')[1]
+            resolve({
+                [name]:numData
+            })
+        })
+        .catch(e=>resolve(null))
+    })
 }
+
+app.get('/stocks/today', async(req, res)=>{
+    const urlList = companyList.map(e=>reqToday(DAY_BASE_URL+e.code, e.name))
+    const ret = await Promise.all(urlList)
+    let obj = {}
+    ret.forEach(e=>{
+        obj = {
+            ...e,
+            ...obj
+        }
+    })
+    res.send(obj)
+})
+
+app.get('/stocks/days', (req, res)=>{
+    vo(run)(function(err, data){
+        if(err) console.log(`err : ${err}`)
+        res.send(data)
+    })
+})
+
+app.listen(PORT, () => {
+    console.log(`서버가 시작되었습니다.http://127.0.0.1:${PORT}`)
+})
